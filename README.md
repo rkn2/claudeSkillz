@@ -33,15 +33,66 @@ Converts a folder of input materials (project summary, notes, NSF program call) 
 - `SKILL.md` -- the skill instructions (human-readable)
 - `nsf-proposal-draft.skill` -- packaged skill file for installation
 
+### daily-checkin
+
+Reads pending Obsidian tasks, Apple Calendar, and recent voice captures, and maps them onto a recurring weekly block schedule to produce an ordered daily plan.
+
+**Trigger:** "what should I do now/today/tomorrow", "give me a daily plan/check-in", "what's left in my day".
+
+**What it does:**
+1. Runs `gather_context.py` to collect current time/day, remaining schedule blocks for today, pending + blocked tasks, calendar (today + rest of week), and today's voice captures
+2. Decides whether to plan for the rest of today or pivot to tomorrow based on time of day
+3. Categorizes tasks by `domain` (research/grants/admin/personal/communications) and `due_type` (`hard` = real external deadline, `soft` = self-imposed target, no pressure)
+4. Produces a plan: **Main blocks**, **What goes inside** (one task/event per line; Inbox items get duration/hard-soft/deadline appended), **Doesn't fit** (urgent hard-deadline items), and **Things you've been meaning to get to** (overdue soft items, optional)
+5. Respects "protected" named blocks (e.g. "Meetings + teaching prep") -- doesn't silently fill them with unrelated work
+
+**Notes:**
+- Calendar access is via a direct SQLite query against `Calendar.sqlitedb` (icalbuddy proved unreliable even with permissions granted)
+- `gather_context.py` hardcodes one person's Obsidian vault path, weekly schedule, and task frontmatter conventions -- adapt the constants at the top of the file for your own setup
+
+**Files:**
+- `SKILL.md` -- the skill instructions
+- `gather_context.py` -- context-gathering helper script (run via `python3`)
+
+### hypothesis-loop
+
+Use when running an unattended multi-round research, optimization, or audit loop (overnight, autonomous, `/loop`-driven, or cron-driven) where each round is steered by a hypothesis check before spending compute or money. Triggers include "run this overnight", "autonomous loop", "keep iterating until", "optimization loop", "self-paced research loop".
+
+**What it does:**
+- Sonnet does the iteration work; every round is gated by an Opus subagent that weighs hypotheses before any compute/spend, as a defense against local-optimum momentum
+- State lives on disk (`PROTOCOL.md` + `STATE.json`), not in context, so the loop survives long unattended runs
+- For long campaigns, hypothesis history is tracked as a factored tree (`HYPOTHESES.json`) so the gate only needs to read the frontier, keeping context cost flat regardless of run length
+
+**Files:**
+- `SKILL.md` -- the skill instructions
+- `PROTOCOL-template.md` -- starting template for a run's `PROTOCOL.md`
+
+### strip-claude
+
+Removes all `Co-Authored-By: Claude` trailers from every commit in a GitHub repo, then force-pushes all affected branches.
+
+**Trigger:** `/strip-claude <github-repo-url-or-owner/repo>` (e.g. `/strip-claude rkn2/energyInfrastructure`)
+
+**What it does:**
+1. Clones the repo and checks out all branches
+2. Scans for commits with `Co-Authored-By: Claude` trailers and reports a summary
+3. Uses `git-filter-repo` to strip the trailers from commit messages on all branches
+4. Shows a preview and asks for explicit confirmation before force-pushing
+
+**Files:**
+- `SKILL.md` -- the skill instructions
+
 ## Installation
 
-**Option 1: Copy SKILL.md directly**
+**Option 1: Copy SKILL.md (and any companion files) directly**
 ```bash
-mkdir -p ~/.claude/skills/nsf-proposal-draft
-cp nsf-proposal-draft/SKILL.md ~/.claude/skills/nsf-proposal-draft/SKILL.md
+mkdir -p ~/.claude/skills/<skill-name>
+cp <skill-name>/SKILL.md ~/.claude/skills/<skill-name>/
+# copy any other files in the skill's directory too, e.g.:
+cp <skill-name>/*.py ~/.claude/skills/<skill-name>/ 2>/dev/null
 ```
 
-**Option 2: Install the .skill package** (if your Claude version supports it)
+**Option 2: Install a `.skill` package** (if your Claude version supports it)
 ```bash
 # Open the .skill file through the Claude interface
 ```
