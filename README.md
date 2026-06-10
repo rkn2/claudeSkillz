@@ -67,6 +67,22 @@ Use when running an unattended multi-round research, optimization, or audit loop
 - `SKILL.md` -- the skill instructions
 - `PROTOCOL-template.md` -- starting template for a run's `PROTOCOL.md`
 
+### recap
+
+Companion to daily-checkin, but looks backward: summarizes what Becca has done **today** or **this week so far**, based on Soundcore voice captures (primary source) and any Obsidian tasks marked done with a `completed_date`.
+
+**Trigger:** "what have I done today/this week", "recap my day/week", "what did I get done so far".
+
+**What it does:**
+1. Runs `gather_done.py --range today` (or `--range week`, Monday through today) to pull voice captures and any completed tasks in range
+2. Reads the captures as a narration of work done; "Kangaroo task ..." entries (new tasks queued, not yet done) are excluded
+3. "Kangaroo Activity Insight ..." entries are pulled out separately as **Activity Insight additions** -- items for her CV/annual-review log, not part of today's tally
+4. Groups everything else by domain (research / grants / admin -- communications folds into admin here / personal), condensing near-duplicate captures into single bullets
+
+**Files:**
+- `SKILL.md` -- the skill instructions
+- `gather_done.py` -- context-gathering helper script (run via `python3`)
+
 ### strip-claude
 
 Removes all `Co-Authored-By: Claude` trailers from every commit in a GitHub repo, then force-pushes all affected branches.
