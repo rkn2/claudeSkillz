@@ -28,6 +28,26 @@ This matches checked `- [x]` lines against task titles in
 so the plan reflects what's actually been finished. Report any "no matching
 task file found" items to Becca rather than silently dropping them.
 
+**Checked items that aren't actually fully done** (established 2026-06-10):
+if a `- [x]` line has an inline annotation indicating it's only partially
+complete (e.g. `--> i am still working on this so add X due Friday`, "needs
+another hour, top priority next time"), `sync_dailylog.py` will still mark
+the task `done: true` with today's `completed_date` -- title-prefix matching
+can't distinguish "done for today" from "done overall". After running sync,
+fix these:
+
+1. Revert the task file to `done: false`, `completed_date: ''`, and append a
+   short progress note to the body (what's done, what remains).
+2. If the annotation describes a distinct follow-up (e.g. "double check
+   Lara's spring TA, due Friday"), create a new task file for it.
+3. Remove the line entirely from today's dailyLog so it can't re-trigger the
+   same false positive on the next sync run (including the nightly
+   `eod_check.sh`).
+
+This happened twice on 2026-06-10 (llmDamagev2, and the budget/grad-stipend
+review + Lara TA follow-up) -- `eod_check.sh` now handles this case
+automatically (see its script comments).
+
 ## Step 1: Gather context
 
 Run the helper script — it does all the data gathering (current time, day of
@@ -149,6 +169,13 @@ Guidelines:
 - Keep reasoning brief — one phrase per item, not a paragraph.
 - Watch for ambiguous/test calendar entries (e.g. an event literally titled
   "test") — don't treat these as real commitments; flag if unsure.
+- **Account for all time within a block, not just calendar events.**
+  (Established 2026-06-10.) If a block contains one or more calendar events,
+  check for open time before the first event, between events, and after the
+  last event -- fill these gaps with pending tasks rather than only listing
+  the calendar items and leaving the rest implicitly blank. (E.g. a
+  "Meetings + grants" block from 13:00-15:30 with a meeting starting at
+  14:00 has a 13:00-14:00 gap that needs something in it too.)
 
 ## Step 5: Write the plan to dailyLog
 

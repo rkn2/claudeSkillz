@@ -21,7 +21,32 @@ python3 /Users/becca/.claude/skills/recap/gather_done.py --range today
 Use `--range week` if Becca asks about "this week" / "so far this week".
 Week = Monday through today (current week only, not a rolling 7 days).
 
-## Step 2: Read the voice captures
+For past periods, add `--weeks-ago N` (established 2026-06-09):
+- `--range week --weeks-ago 1` -- last week (full Mon-Sun)
+- `--range week --weeks-ago 2` -- two weeks ago (full Mon-Sun)
+- `--range today --weeks-ago 1` -- this day last week
+
+`--weeks-ago 0` (default) keeps the current behavior (this week so far /
+today).
+
+## Step 2: Read the dailyLog notes
+
+`gather_done.py` also prints the raw `vault/dailyLog/YYYY-MM-DD.md` file(s)
+for the range (established 2026-06-10). These are Becca's own notes to
+herself and often carry context that isn't in voice captures or
+`completed_date`:
+
+- Checked-off items confirm what got done that day.
+- Inline annotations (e.g. `--> i am still working on this so add X due
+  Friday`) may mean a checked item spawned a **follow-up task for another
+  day** -- if so, mention that follow-up briefly under the relevant domain
+  (e.g. "Reviewed budget/stipends -- spun off a follow-up to double-check
+  Lara's spring TA, due 6/12") rather than treating the whole line as fully
+  closed.
+- If a dailyLog line was later removed/resolved (e.g. dismissed as
+  unnecessary), reflect that outcome rather than the original line text.
+
+## Step 3: Read the voice captures
 
 The captures are raw, timestamped voice transcriptions. Most of the content
 is Becca narrating what she just did -- treat this as the primary record of
@@ -37,36 +62,38 @@ Two special phrases to watch for:
   Insight log/document (awards, talks, committee roles, etc. for CVs, annual
   reviews, promotion docs). Pull these out entirely from the "what you did
   today" summary and list them separately as **Activity Insight additions**
-  (see Step 5) -- framed as "add these to your Activity Insight log," not as
+  (see Step 6) -- framed as "add these to your Activity Insight log," not as
   today's accomplishments.
 
 Everything else in the captures (narration of work done) counts as
 accomplishments.
 
-## Step 3: Categorize and summarize
+## Step 4: Categorize and summarize
 
-Group accomplishments by domain, using the same conventions as
-[[daily-checkin]], **except communications folds into admin** for recap
-purposes (established 2026-06-09):
+Recap is **work-only** -- leave out personal/family narration entirely
+(established 2026-06-10). Group accomplishments into exactly these four
+domains, in this order:
 
-- **research** -- reviewing reports/papers, research project work
-- **grants** -- grant budgets, pitch decks, grant-related coordination
+- **research** -- reviewing reports/papers, research project work, research
+  meetings/mentoring
+- **grants** -- grant budgets, pitch decks, grant-related coordination,
+  stipend/budget verification
 - **admin** -- reimbursements, payments, dashboard/task-board upkeep,
-  outreach messages/emails
-- **personal** -- family/household
+  outreach messages/emails, communications (folded in)
+- **teaching** -- course prep, Canvas, course-related coordination
 
 Within each group, condense related narration into single bullet points
 rather than repeating near-duplicate captures verbatim (e.g. multiple
 captures about "reimbursements for EMI" become one bullet).
 
-## Step 4: Include completed tasks
+## Step 5: Include completed tasks
 
 If `gather_done.py` returns any tasks marked done with a `completed_date` in
 range, list them too. If it returns none, don't worry -- `completed_date` is
 often left blank, and the voice captures are the more reliable source. Don't
 apologize for this or belabor the gap; just rely on the captures.
 
-## Step 5: Produce the output
+## Step 6: Produce the output
 
 ```
 **[Day], [Date] — What you've done [today / this week so far]**

@@ -14,6 +14,7 @@ from pathlib import Path
 VAULT = Path("/Users/becca/Library/Mobile Documents/iCloud~md~obsidian/Documents/BeccaNap")
 TASKS_DIR = VAULT / "tasks"
 CAPTURES_DIR = VAULT / "captures"
+DAILYLOG_DIR = VAULT / "dailyLog"
 
 
 def _parse_frontmatter(text: str) -> dict:
@@ -60,25 +61,53 @@ def gather_captures(start: datetime.date, end: datetime.date) -> list[tuple[date
     return out
 
 
+def gather_dailylogs(start: datetime.date, end: datetime.date) -> list[tuple[datetime.date, str]]:
+    out = []
+    d = start
+    while d <= end:
+        f = DAILYLOG_DIR / f"{d.isoformat()}.md"
+        if f.exists():
+            text = f.read_text(errors="replace").strip()
+            if text:
+                out.append((d, text))
+        d += datetime.timedelta(days=1)
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--range", choices=["today", "week"], default="today")
+    parser.add_argument(
+        "--weeks-ago", type=int, default=0,
+        help="0 = this week/today, 1 = last week, 2 = two weeks ago, etc.",
+    )
     args = parser.parse_args()
 
     today = datetime.date.today()
-    if args.range == "week":
-        start = today - datetime.timedelta(days=today.weekday())  # Monday
-    else:
-        start = today
-    end = today
+    this_monday = today - datetime.timedelta(days=today.weekday())
 
-    print(f"=== Range: {args.range} ({start.isoformat()} to {end.isoformat()}) ===\n")
+    if args.range == "week":
+        start = this_monday - datetime.timedelta(weeks=args.weeks_ago)
+        end = today if args.weeks_ago == 0 else start + datetime.timedelta(days=6)
+    else:
+        start = end = today - datetime.timedelta(weeks=args.weeks_ago)
+
+    print(f"=== Range: {args.range}, weeks_ago={args.weeks_ago} ({start.isoformat()} to {end.isoformat()}) ===\n")
 
     print("--- Voice captures ---")
     captures = gather_captures(start, end)
     if not captures:
         print("(none)")
     for d, text in captures:
+        print(f"\n## {d.strftime('%A %B %-d')}")
+        print(text)
+    print()
+
+    print("--- Daily log notes ---")
+    dailylogs = gather_dailylogs(start, end)
+    if not dailylogs:
+        print("(none)")
+    for d, text in dailylogs:
         print(f"\n## {d.strftime('%A %B %-d')}")
         print(text)
     print()
