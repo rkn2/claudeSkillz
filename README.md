@@ -40,19 +40,22 @@ Reads pending Obsidian tasks, Apple Calendar, and recent voice captures, and map
 **Trigger:** "what should I do now/today/tomorrow", "give me a daily plan/check-in", "what's left in my day".
 
 **What it does:**
-1. Runs `gather_context.py` to collect current time/day, remaining schedule blocks for today, pending + blocked tasks, calendar (today + rest of week), and today's voice captures
-2. Decides whether to plan for the rest of today or pivot to tomorrow based on time of day
-3. Categorizes tasks by `domain` (research/grants/admin/personal/communications) and `due_type` (`hard` = real external deadline, `soft` = self-imposed target, no pressure)
-4. Produces a plan: **Main blocks**, **What goes inside** (one task/event per line; Inbox items get duration/hard-soft/deadline appended), **Doesn't fit** (urgent hard-deadline items), and **Things you've been meaning to get to** (overdue soft items, optional)
-5. Respects "protected" named blocks (e.g. "Meetings + teaching prep") -- doesn't silently fill them with unrelated work
+1. Runs `sync_dailylog.py` first to mark any tasks Becca already checked off in today's dailyLog as done in the master task list
+2. Runs `gather_context.py` to collect current time/day, remaining schedule blocks for today, pending + blocked tasks, calendar (today + rest of week), and today's voice captures
+3. Decides whether to plan for the rest of today or pivot to tomorrow based on time of day
+4. Categorizes tasks by `domain` (research/grants/admin/personal/communications) and `due_type` (`hard` = real external deadline, `soft` = self-imposed target, no pressure)
+5. Produces a plan: **Main blocks**, **What goes inside** (one task/event per line; Inbox items get duration/hard-soft/deadline appended), **Doesn't fit** (urgent hard-deadline items), and **Things you've been meaning to get to** (overdue soft items, optional)
+6. Respects "protected" named blocks (e.g. "Meetings + teaching prep") -- doesn't silently fill them with unrelated work
+7. Writes the plan to `dailyLog/YYYY-MM-DD.md` as a checkbox checklist, organized by block, so Becca can check items off through the day
 
 **Notes:**
 - Calendar access is via a direct SQLite query against `Calendar.sqlitedb` (icalbuddy proved unreliable even with permissions granted)
-- `gather_context.py` hardcodes one person's Obsidian vault path, weekly schedule, and task frontmatter conventions -- adapt the constants at the top of the file for your own setup
+- `gather_context.py` and `sync_dailylog.py` hardcode one person's Obsidian vault path, weekly schedule, and task frontmatter conventions -- adapt the constants at the top of each file for your own setup
 
 **Files:**
 - `SKILL.md` -- the skill instructions
 - `gather_context.py` -- context-gathering helper script (run via `python3`)
+- `sync_dailylog.py` -- syncs checked-off dailyLog items back to the master task list (run via `python3`)
 
 ### hypothesis-loop
 

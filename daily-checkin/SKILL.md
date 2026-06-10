@@ -13,6 +13,21 @@ calendar, and recent voice captures, and produces an ordered plan mapped onto
 the **remaining blocks of her day** (or tomorrow, if the day is essentially
 over).
 
+## Step 0: Sync dailyLog completions back to master tasks
+
+If today's `dailyLog/YYYY-MM-DD.md` checklist exists and Becca has checked
+items off (or mentions she has), run:
+
+```bash
+python3 /Users/becca/.claude/skills/daily-checkin/sync_dailylog.py
+```
+
+This matches checked `- [x]` lines against task titles in
+`vault/tasks/*.md` and marks the corresponding task `done: true` with
+`completed_date` set to today. Run this before re-gathering context (Step 1)
+so the plan reflects what's actually been finished. Report any "no matching
+task file found" items to Becca rather than silently dropping them.
+
 ## Step 1: Gather context
 
 Run the helper script — it does all the data gathering (current time, day of
@@ -135,7 +150,26 @@ Guidelines:
 - Watch for ambiguous/test calendar entries (e.g. an event literally titled
   "test") — don't treat these as real commitments; flag if unsure.
 
-## Step 5: Updating task metadata
+## Step 5: Write the plan to dailyLog
+
+Write the plan to `vault/dailyLog/YYYY-MM-DD.md` as a checkbox checklist so
+Becca can check things off through the day. (Established 2026-06-10.)
+
+- Title: `# [Day], [Month] [Date], [Year]`.
+- No separate "Schedule" section listing the time blocks as checkboxes —
+  each block's own heading (e.g. `## Research (8:30–11:00)`) already conveys
+  the schedule. Start directly with the first work block.
+- One `## [Block name] ([time range])` heading per block, with each
+  task/event as `- [ ] ...`, using the same line format as Step 4 (Inbox
+  items: `title -- duration -- hard/soft -- deadline`).
+- Include "Doesn't fit" and "Things you've been meaning to get to" sections
+  too, also as checklists, if present in the plan.
+- If the file already exists (re-running check-in later in the day), run
+  Step 0 first, then update the file in place — preserve already-checked
+  items, add/remove tasks based on the new plan, but don't wipe out
+  progress.
+
+## Step 6: Updating task metadata
 
 If Becca corrects a task's categorization, deadline, or scheduling
 constraint during the conversation (as has happened before — e.g.
