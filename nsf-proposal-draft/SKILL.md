@@ -145,14 +145,34 @@ Generate five files in the user's materials folder (or a new subfolder if they p
 \usepackage{caption}
 \usepackage{colortbl}
 \usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{pgfgantt}
 
+% ── Colors ──────────────────────────────────────────────────────────────────
 \definecolor{mycmykcolor}{cmyk}{0.45,0.30,0.20,0}
 \definecolor{secondary}{cmyk}{0,0,0,0.20}
+
+% Project-goals box color
+\definecolor{top}{HTML}{C98873}
+
+% Per-RO colors (tied to the Gantt chart groups in "Project timeline and evaluation")
+\definecolor{roonecol}{HTML}{8C9EB2}    % RO1 -- soft muted blue
+\definecolor{rootwocol}{HTML}{E0914D}   % RO2 -- warm amber/orange
+\definecolor{roothreecol}{HTML}{FCD053} % RO3 -- pastel yellow
+
+\linespread{0.9}
 
 \titleformat{\section}[runin]{\normalfont\bfseries}{\thesection}{1em}{}[:]
 \titlespacing*{\section}{0pt}{\baselineskip}{1ex}
 \titleformat{\subsection}[runin]{\normalfont\bfseries}{\thesubsection}{1em}{}[:]
 \titlespacing*{\subsection}{0pt}{\baselineskip}{1ex}
+
+% Block-style heading for occasional sections (e.g. Broader Impacts) that should
+% break out of the default runin section style.
+\newcommand{\customsection}[1]{%
+  \titleformat{\section}[block]{\normalfont\bfseries}{\thesection}{1em}{}[]%
+  \section{#1}%
+  \titleformat{\section}[runin]{\normalfont\bfseries}{\thesection}{1em}{}[:]%
+}
 
 \bibliographystyle{unsrtnat}
 \hypersetup{hidelinks,colorlinks=false,urlcolor=black}
@@ -164,6 +184,9 @@ Generate five files in the user's materials folder (or a new subfolder if they p
 \graphicspath{{images/}}
 
 \newcommand{\pseudodot}{{\lower 2.4pt\hbox{$\cdot$}}}
+
+\begin{document}
+\pagestyle{empty}  %turn this back on at the end for nsf
 ```
 
 ### Section order
@@ -173,7 +196,7 @@ Generate five files in the user's materials folder (or a new subfolder if they p
 Open with a tcolorbox summarizing the project around its RQs:
 
 ```latex
-\begin{tcolorbox}[colback=mycmykcolor, colframe=black, boxrule=1pt, coltext=black]
+\begin{tcolorbox}[colback=top!55, colframe=black, boxrule=1pt, coltext=black]
 \textbf{Project goals:}
 [2-4 sentences. State the framework or system being proposed. Name each RQ with \textbf{RQ1}, \textbf{RQ2} etc. and the PI(s) responsible. End with the defining intellectual contribution -- what makes this not just building a system but advancing generalizable knowledge.]
 \end{tcolorbox}
@@ -256,10 +279,12 @@ One stub per PI.
 
 Opening paragraph: "The research plan is organized around [N] research objectives corresponding to the [N] research questions. [RO1 description + PI(s) + subtask count]. [RO2 description + PI + subtask count]. [RO3 description + PI(s)]."
 
-For each RO:
+For each RO, use the matching per-RO color (`roonecol` for RO1, `rootwocol` for RO2,
+`roothreecol` for RO3, defined in the preamble) -- these same colors are reused for
+that RO's group in the Gantt chart in Section 10:
 
 ```latex
-\begin{tcolorbox}[colback=mycmykcolor,colframe=black,boxrule=1pt,coltext=black,
+\begin{tcolorbox}[colback=roonecol!55,colframe=black,boxrule=1pt,coltext=black,
   left=1mm,right=1mm,top=1mm,bottom=1mm]
 \textbf{Research Objective N (RON, lead(s): Lastname \& Lastname): Title.}
 \end{tcolorbox}
@@ -281,9 +306,11 @@ At the end of each RO's subtasks (before the next tcolorbox):
 \textbf{Key outcomes and evaluation:} Add after subtasks are written.
 ```
 
-**9. \section{Broader impacts}**
+**9. \customsection{Broader Impacts}**
 
-Four paragraphs of written prose:
+Use `\customsection{Broader Impacts}` (defined in the preamble) instead of
+`\section{}` for this heading -- it breaks out of the runin section style for this
+one section. Four paragraphs of written prose:
 - Para 1: How the framework transforms access or practice for the target community
 - Para 2: Generalizability beyond the pilot domain
 - Para 3: Program alignment
@@ -296,7 +323,79 @@ Then subsections:
 
 **10. \section{Project timeline and evaluation}**
 
-Written prose (not a stub). State project duration, parallel/sequential structure of ROs by year, and 5-6 numbered KPIs corresponding to each RO and the human-AI collaboration work.
+Written prose (not a stub). State project duration, parallel/sequential structure of ROs by year, and 5-6 numbered KPIs corresponding to each RO and the human-AI collaboration work. Reference the Gantt chart as `Fig.~\ref{fig:gantt}` and its numbered milestones.
+
+Follow the prose with a Gantt chart figure built with `pgfgantt` (do not use an
+`\includegraphics` image for the timeline). One `\ganttgroup` per RO, using that
+RO's color (`roonecol`/`rootwocol`/`roothreecol`, matching the tcolorbox colors
+from Section 8), with `\ganttbar` rows per subtask and `\ganttmilestone` markers
+numbered to match the KPIs/milestones referenced in the prose:
+
+```latex
+\begin{figure}[H]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{ganttchart}[
+  hgrid,
+  vgrid=false,
+  x unit=2.6mm,
+  y unit title=5mm,
+  y unit chart=4.8mm,
+  title/.style={fill=lightgray, draw=black, font=\scriptsize\bfseries},
+  title label font=\scriptsize\bfseries,
+  bar label font=\scriptsize,
+  group label font=\scriptsize\bfseries,
+  bar height=0.55,
+  group height=0.3,
+  bar top shift=0.225,
+  bar label node/.append style={align=right, text width=4.2cm},
+  group label node/.append style={align=right, text width=4.2cm},
+  milestone label font=\tiny,
+  milestone label node/.append style={text width=0pt, text=white},
+]{1}{36}
+%--- title rows
+\gantttitle{Year 1}{12}\gantttitle{Year 2}{12}\gantttitle{Year 3}{12} \\
+\gantttitle{Q1}{3}\gantttitle{Q2}{3}\gantttitle{Q3}{3}\gantttitle{Q4}{3}%
+\gantttitle{Q1}{3}\gantttitle{Q2}{3}\gantttitle{Q3}{3}\gantttitle{Q4}{3}%
+\gantttitle{Q1}{3}\gantttitle{Q2}{3}\gantttitle{Q3}{3}\gantttitle{Q4}{3} \\
+%--- RO1
+\ganttgroup[
+  group/.append style={fill=roonecol, draw=roonecol!70!black},
+  group label node/.append style={text=roonecol!70!black}
+]{RO1}{1}{18}
+  \ganttmilestone[milestone/.append style={fill=roonecol!60!black, draw=roonecol!40!black, shape=rectangle, rounded corners=1pt, inner sep=6pt, label={[font=\tiny\bfseries,text=white,inner sep=0pt]center:1}}]{}{18} \\
+\ganttbar[bar/.append style={fill=roonecol!55, draw=roonecol!80}]{1.1 [Subtask title]}{1}{12} \\
+\ganttbar[bar/.append style={fill=roonecol!55, draw=roonecol!80}]{1.2 [Subtask title]}{1}{12} \\
+\ganttbar[bar/.append style={fill=roonecol!55, draw=roonecol!80}]{1.3 [Subtask title]}{6}{18} \\
+%--- RO2
+\ganttgroup[
+  group/.append style={fill=rootwocol, draw=rootwocol!70!black},
+  group label node/.append style={text=rootwocol!70!black}
+]{RO2}{1}{24}
+  \ganttmilestone[milestone/.append style={fill=rootwocol!60!black, draw=rootwocol!40!black, shape=rectangle, rounded corners=1pt, inner sep=6pt, label={[font=\tiny\bfseries,text=white,inner sep=0pt]center:2}}]{}{24} \\
+\ganttbar[bar/.append style={fill=rootwocol!55, draw=rootwocol!80}]{2.1 [Subtask title]}{1}{12} \\
+\ganttbar[bar/.append style={fill=rootwocol!55, draw=rootwocol!80}]{2.2 [Subtask title]}{12}{24} \\
+%--- RO3
+\ganttgroup[
+  group/.append style={fill=roothreecol, draw=roothreecol!70!black},
+  group label node/.append style={text=roothreecol!70!black}
+]{RO3}{12}{36}
+  \ganttmilestone[milestone/.append style={fill=roothreecol!60!black, draw=roothreecol!40!black, shape=rectangle, rounded corners=1pt, inner sep=6pt, label={[font=\tiny\bfseries,text=white,inner sep=0pt]center:3}}]{}{30}
+  \ganttmilestone[milestone/.append style={fill=roothreecol!60!black, draw=roothreecol!40!black, shape=rectangle, rounded corners=1pt, inner sep=6pt, label={[font=\tiny\bfseries,text=white,inner sep=0pt]center:4}}]{}{36} \\
+\ganttbar[bar/.append style={fill=roothreecol!55, draw=roothreecol!80}]{3.1 [Subtask title]}{12}{24} \\
+\ganttbar[bar/.append style={fill=roothreecol!55, draw=roothreecol!80}]{3.2 [Subtask title]}{24}{36}
+\end{ganttchart}%
+}
+\caption{Project timeline and Gantt chart. Numbered rectangles denote the
+chronological sequence of key performance indicators (KPIs) and project
+milestones.}
+\label{fig:gantt}
+\end{figure}
+```
+
+Adjust the `{1}{36}` project-month range, `\gantttitle` Year/Quarter spans, each
+`\ganttgroup`'s start/end month, and the per-RO `\ganttbar` rows to match the
+project's actual duration and number of ROs/subtasks.
 
 **11. \section{Results from prior NSF Support}**
 
@@ -431,3 +530,6 @@ Before generating, confirm:
 - Each RO section ends with "Key outcomes and evaluation: Add after subtasks are written."
 - All comments use `% firstname:` format (lowercase, first name only)
 - `xxx` used for all unknown quantities
+- Each RO tcolorbox uses its matching color (`roonecol`/`rootwocol`/`roothreecol`)
+- Project timeline section includes a `pgfgantt` Gantt chart (Fig.~\ref{fig:gantt}), not a placeholder image
+- Broader Impacts heading uses `\customsection{Broader Impacts}`
