@@ -14,6 +14,7 @@ from pathlib import Path
 VAULT = Path("/Users/becca/Library/Mobile Documents/iCloud~md~obsidian/Documents/BeccaNap")
 TASKS_DIR = VAULT / "tasks"
 CAPTURES_DIR = VAULT / "captures"
+ACTIVE_PROJECTS_FILE = VAULT / "active-projects.md"
 CALENDAR_DB = Path.home() / "Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb"
 MAC_EPOCH_OFFSET = 978307200  # seconds between unix epoch and 2001-01-01
 
@@ -23,7 +24,7 @@ MAC_EPOCH_OFFSET = 978307200  # seconds between unix epoch and 2001-01-01
 SCHEDULE = {
     0: [  # Monday
         ("07:45", "08:00", "Drop + drive"),
-        ("08:00", "08:30", "Lucy walk + capture"),
+        ("08:00", "08:30", "Catch up / buffer"),
         ("08:30", "11:00", "Research"),
         ("11:00", "12:00", "Inbox"),
         ("12:00", "13:00", "Lunch"),
@@ -33,8 +34,8 @@ SCHEDULE = {
     ],
     1: [  # Tuesday
         ("07:45", "08:00", "Drop + drive"),
-        ("08:00", "08:30", "Lucy walk + capture"),
-        ("08:30", "11:00", "Grants"),
+        ("08:00", "08:30", "Catch up / buffer"),
+        ("08:30", "11:00", "Student reports + feedback"),
         ("11:00", "12:00", "Inbox"),
         ("12:00", "13:00", "Drive to campus"),
         ("13:00", "15:30", "Meetings + grants"),
@@ -43,7 +44,7 @@ SCHEDULE = {
     ],
     2: [  # Wednesday
         ("07:45", "08:00", "Drop + drive"),
-        ("08:00", "08:30", "Lucy walk + capture"),
+        ("08:00", "08:30", "Catch up / buffer"),
         ("08:30", "11:00", "Research"),
         ("11:00", "12:00", "Inbox"),
         ("12:00", "13:00", "Drive to campus"),
@@ -53,7 +54,7 @@ SCHEDULE = {
     ],
     3: [  # Thursday
         ("07:45", "08:00", "Drop + drive"),
-        ("08:00", "08:30", "Lucy walk + capture"),
+        ("08:00", "08:30", "Catch up / buffer"),
         ("08:30", "11:00", "Grants"),
         ("11:00", "12:00", "Inbox"),
         ("12:00", "13:00", "Drive to campus"),
@@ -63,7 +64,7 @@ SCHEDULE = {
     ],
     4: [  # Friday
         ("07:45", "08:00", "Drop + drive"),
-        ("08:00", "08:30", "Lucy walk + capture"),
+        ("08:00", "08:30", "Catch up / buffer"),
         ("08:30", "11:00", "Research"),
         ("11:00", "12:00", "Inbox"),
         ("12:00", "13:00", "Lunch"),
@@ -145,6 +146,49 @@ def gather_capture(date_str: str) -> str:
     return f.read_text(errors="replace")
 
 
+def gather_active_projects(today: datetime.date) -> tuple[list[dict], str | None, list[str]]:
+    """Parse active-projects.md.
+
+    Returns (projects, this_week_date, this_week_items) where each project
+    dict has name/status/last_focus/days_since, this_week_date is the
+    YYYY-MM-DD from a '## This week (...)' heading (or None), and
+    this_week_items is the list of project names under that heading.
+    """
+    if not ACTIVE_PROJECTS_FILE.exists():
+        return [], None, []
+    text = ACTIVE_PROJECTS_FILE.read_text(errors="replace")
+
+    projects = []
+    for line in text.splitlines():
+        m = re.match(r"^-\s*(.+?)\s*—\s*(.+?)\s*—\s*last focus:\s*(.+)$", line.strip())
+        if not m:
+            continue
+        name, status, last_focus = (g.strip() for g in m.groups())
+        days_since = None
+        if last_focus != "unknown":
+            try:
+                days_since = (today - datetime.date.fromisoformat(last_focus)).days
+            except ValueError:
+                pass
+        projects.append({"name": name, "status": status, "last_focus": last_focus, "days_since": days_since})
+
+    this_week_date = None
+    this_week_items: list[str] = []
+    wm = re.search(r"^## This week \((\d{4}-\d{2}-\d{2})\)\s*$", text, re.MULTILINE)
+    if wm:
+        this_week_date = wm.group(1)
+        for line in text[wm.end():].splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                break
+            if line.startswith("-"):
+                this_week_items.append(line.lstrip("- ").strip())
+
+    return projects, this_week_date, this_week_items
+
+
 def remaining_blocks(now: datetime.datetime) -> list[tuple]:
     """Return today's schedule blocks that haven't ended yet."""
     today_blocks = SCHEDULE.get(now.weekday(), [])
@@ -198,6 +242,26 @@ def main() -> None:
         for t in blocked:
             print(f"- {t['title']}  [starts {t.get('start_date')}]  [due {t.get('due_date', '?')}]")
         print()
+
+    print("--- Active projects ---")
+    projects, this_week_date, this_week_items = gather_active_projects(today)
+    if not projects:
+        print("(none)")
+    for p in projects:
+        line = f"- {p['name']} — {p['status']}"
+        if p["days_since"] is None:
+            line += " — last focus unknown"
+        else:
+            line += f" — last focus {p['days_since']}d ago"
+            if p["days_since"] >= 7:
+                line += "  [STALE - 7+ days, raise at weekly check-in]"
+        print(line)
+    current_monday = (today - datetime.timedelta(days=today.weekday())).isoformat()
+    if this_week_date == current_monday:
+        print(f"This week's focus (set {this_week_date}): {', '.join(this_week_items) if this_week_items else '(none picked)'}")
+    else:
+        print(f"No 'this week' picks for the current week (week of {current_monday}) -- weekly priorities check is due.")
+    print()
 
     print("--- Calendar: today ---")
     today_events = gather_calendar(today, today)

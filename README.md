@@ -44,22 +44,20 @@ Reads pending Obsidian tasks, Apple Calendar, and recent voice captures, and map
 2. Runs `gather_context.py` to collect current time/day, remaining schedule blocks for today, pending + blocked tasks, calendar (today + rest of week), and today's voice captures
 3. Decides whether to plan for the rest of today or pivot to tomorrow based on time of day
 4. Categorizes tasks by `domain` (research/grants/admin/personal/communications) and `due_type` (`hard` = real external deadline, `soft` = self-imposed target, no pressure)
-5. Produces a plan: **Main blocks**, **What goes inside** (one task/event per line; Inbox items get duration/hard-soft/deadline appended), **Doesn't fit** (urgent hard-deadline items), and **Things you've been meaning to get to** (overdue soft items, optional)
-6. Respects "protected" named blocks (e.g. "Meetings + teaching prep") -- doesn't silently fill them with unrelated work
-7. Writes the plan to `dailyLog/YYYY-MM-DD.md` as a checkbox checklist, organized by block, so Becca can check items off through the day
+5. Checks `active-projects.md` for ongoing projects/grants -- flags any untouched 7+ days, and if no "this week" picks exist yet for the current week, asks which 1-3 projects get a slot and records the picks back to the file
+6. Produces a plan: **Main blocks**, **What goes inside** (one task/event per line; Inbox items get duration/hard-soft/deadline appended; this week's focus projects get their own line in Research/Grants blocks), **Doesn't fit** (urgent hard-deadline items), and **Things you've been meaning to get to** (overdue soft items, optional)
+7. Respects "protected" named blocks (e.g. "Meetings + teaching prep") -- doesn't silently fill them with unrelated work
+8. Writes the plan to `dailyLog/YYYY-MM-DD.md` as a checkbox checklist, organized by block, so Becca can check items off through the day
 
-An optional **end-of-day check** runs standalone (no chat session needed):
-`eod_check.sh` re-runs `sync_dailylog.py`, then calls `claude -p` headlessly to
-scan today's dailyLog for inline annotations on task lines (e.g. `--> this is
-blocked, move to friday`), applies the requested changes to the matching task
-file's frontmatter, cleans up the dailyLog, and fires a macOS notification if
-anything changed. Scheduled via the included launchd plist (established
-2026-06-10).
+Two optional automations run standalone (no chat session needed), both via launchd:
+- **Morning check-in** (`morning_checkin.sh`, established 2026-06-17): runs `gather_context.py`, then calls `claude -p` headlessly to follow the skill and write the day's plan before Becca's day starts. Skips weekends and skips if today's dailyLog already exists. Non-interactive: makes reasonable calls on ambiguous items (e.g. unset weekly priorities) and notes assumptions inline instead of asking.
+- **End-of-day check** (`eod_check.sh`, established 2026-06-10): re-runs `sync_dailylog.py`, then calls `claude -p` headlessly to scan today's dailyLog for inline annotations on task lines (e.g. `--> this is blocked, move to friday`), applies the requested changes to the matching task file's frontmatter, cleans up the dailyLog, and fires a macOS notification if anything changed.
 
 **Notes:**
 - Calendar access is via a direct SQLite query against `Calendar.sqlitedb` (icalbuddy proved unreliable even with permissions granted)
-- `gather_context.py`, `sync_dailylog.py`, and `eod_check.sh` hardcode one person's Obsidian vault path, weekly schedule, and task frontmatter conventions -- adapt the constants at the top of each file for your own setup
-- `com.becca.dailylog-eod-check.plist` hardcodes absolute paths and a username -- edit before installing to `~/Library/LaunchAgents/`, then `launchctl bootstrap gui/$(id -u) <plist>`
+- Both launchd-triggered scripts run as `launchd -> /bin/bash -> ...`, with no Terminal/tmux in the process tree -- on macOS this means the iCloud/Calendar reads will only work if `/bin/bash` itself has been granted Full Disk Access in System Settings -> Privacy & Security (granting it to a terminal app or to `claude` is not sufficient, since neither is the actual binary launchd invokes)
+- `gather_context.py`, `sync_dailylog.py`, `eod_check.sh`, and `morning_checkin.sh` hardcode one person's Obsidian vault path, weekly schedule, and task frontmatter conventions -- adapt the constants at the top of each file for your own setup
+- `com.becca.dailylog-eod-check.plist` and `com.becca.dailylog-morning-checkin.plist` hardcode absolute paths and a username -- edit before installing to `~/Library/LaunchAgents/`, then `launchctl bootstrap gui/$(id -u) <plist>`
 
 **Files:**
 - `SKILL.md` -- the skill instructions
@@ -67,6 +65,8 @@ anything changed. Scheduled via the included launchd plist (established
 - `sync_dailylog.py` -- syncs checked-off dailyLog items back to the master task list (run via `python3`)
 - `eod_check.sh` -- standalone end-of-day check (sync + annotation processing + notification)
 - `com.becca.dailylog-eod-check.plist` -- launchd schedule for `eod_check.sh`
+- `morning_checkin.sh` -- standalone morning check-in (writes today's plan before Becca's day starts)
+- `com.becca.dailylog-morning-checkin.plist` -- launchd schedule for `morning_checkin.sh`
 
 ### hypothesis-loop
 

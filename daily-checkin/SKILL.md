@@ -48,6 +48,18 @@ This happened twice on 2026-06-10 (llmDamagev2, and the budget/grad-stipend
 review + Lara TA follow-up) -- `eod_check.sh` now handles this case
 automatically (see its script comments).
 
+## Tuesday morning: Student reports + feedback
+
+Tuesday 8:30–11:00 is dedicated to reading and giving feedback on student
+weekly reports (received Monday nights). When planning a Tuesday check-in:
+- Mention this block by name and prompt Becca to work through her students'
+  reports during this time.
+- She has 3 PhD students; reports typically arrive Monday evenings in email
+  or a shared folder — ask her if she has reports to get through if it's
+  unclear.
+- Do NOT treat this block as available for grants or research tasks by
+  default on Tuesdays.
+
 ## Step 1: Gather context
 
 Run the helper script — it does all the data gathering (current time, day of
@@ -61,6 +73,26 @@ python3 /Users/becca/.claude/skills/daily-checkin/gather_context.py
 This script already encodes the weekly block schedule and computes which
 blocks are still ahead based on the current time. Trust its output for
 "what blocks are left today" — don't re-derive it.
+
+## Step 1.5: Weekly priorities check (active projects)
+
+`gather_context.py`'s `--- Active projects ---` section lists Becca's
+ongoing projects/grants (IJDRR, LLMDamage, ECI, CIR, etc.) from
+`active-projects.md`, each with a status and days since last focus.
+These are *not* individual tasks — Becca knows what to do once she's in
+a project; this section is purely about which projects get a slot.
+
+- If a project is flagged `[STALE - 7+ days...]`, mention it once and ask
+  if she wants to put it back in rotation this week.
+- If the output says **"weekly priorities check is due"** (no "this week"
+  picks for the current week), ask which 1-3 projects should get a slot
+  this week. Rewrite the `## This week (YYYY-MM-DD)` section in
+  `active-projects.md` (use this Monday's date) with her picks, replacing
+  any previous section.
+- If "this week" picks already exist for the current week, just note them
+  briefly — don't re-ask.
+- When a project from "this week" gets placed into today's plan (Step 4),
+  update its `last focus:` date in `active-projects.md` to today.
 
 ## Step 2: Decide today vs. tomorrow
 
@@ -154,6 +186,11 @@ to each line so it still reads as a bulleted list like the other blocks
 ```
 
 Guidelines:
+- For **Research**/**Grants** blocks, check this week's focus projects
+  (from Step 1.5) first. If one hasn't had a slot yet this week, list it as
+  its own line (e.g. "LLMDamage (llmDamagev2) — pick up where you left
+  off") rather than only filling the block with discrete tasks. No need to
+  break down what's inside the project — Becca knows.
 - Don't force every pending task into a slot. Only surface what's relevant
   to the remaining blocks.
 - For the "doesn't fit" section, don't dump the entire backlog — focus on

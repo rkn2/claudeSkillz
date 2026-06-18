@@ -36,7 +36,7 @@ LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).log"
 3. For each annotation found, first check whether the line is checked ('- [x]') or unchecked ('- [ ]'):
 
    a. CHECKED line, annotation indicates only partial completion (e.g. 'still working on this', 'needs another hour', 'add X as a follow-up due <date>'):
-      - Find the matching task file in \"$VAULT/tasks/\" (same fuzzy title matching as sync_dailylog.py). Step 1 (sync_dailylog.py) likely just set this task's `done: true` and `completed_date` to today -- this is a false positive. Revert both (`done: false`, `completed_date: ''`).
+      - Find the matching task file in \"$VAULT/tasks/\" (same fuzzy title matching as sync_dailylog.py). Step 1 (sync_dailylog.py) likely just set this task's \`done: true\` and \`completed_date\` to today -- this is a false positive. Revert both (\`done: false\`, \`completed_date: ''\`).
       - Append a short progress note to the task's body (what's done so far, what remains).
       - If the annotation describes a distinct follow-up item, create a new task file for it in \"$VAULT/tasks/\" following existing frontmatter conventions (title, due_date, due_type, domain inherited from the parent task where sensible, origin: manual, created: today).
       - Remove the line entirely from the dailyLog (not just the annotation text), so it can't re-trigger this same false positive on the next sync run.
