@@ -67,7 +67,14 @@ def gather_dailylogs(start: datetime.date, end: datetime.date) -> list[tuple[dat
     while d <= end:
         f = DAILYLOG_DIR / f"{d.isoformat()}.md"
         if f.exists():
-            text = f.read_text(errors="replace").strip()
+            try:
+                text = f.read_text(errors="replace").strip()
+            except OSError as e:
+                # iCloud "dataless" placeholder not materialized locally (brctl access denied).
+                out.append((d, f"[UNREADABLE -- {e}; likely an undownloaded iCloud file. "
+                                 f"Open {f.name} in Obsidian/Finder to force a local sync, then re-run.]"))
+                d += datetime.timedelta(days=1)
+                continue
             if text:
                 out.append((d, text))
         d += datetime.timedelta(days=1)

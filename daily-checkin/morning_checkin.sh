@@ -29,12 +29,22 @@ LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).log"
 
   TODAY=$(date +%F)
   DAILYLOG_PATH="$VAULT/dailyLog/$TODAY.md"
+  SENTINEL="<!-- generated-by: morning-checkin -->"
 
-  # Don't overwrite if already exists
+  # Only skip if a *real* plan was already generated today (identified by the
+  # sentinel marker), not merely because some file exists. A hand-parked stub
+  # (e.g. tasks carried forward the night before) must NOT block generation —
+  # that's the 2026-06-29 bug, where a parked ae240 task tripped a bare
+  # `[ -f ]` check and the full block plan never got written.
+  PARKED_CONTENT=""
   if [ -f "$DAILYLOG_PATH" ]; then
-    echo "DailyLog already exists for $TODAY — skipping."
-    echo "=== Morning checkin finished: $(date) ==="
-    exit 0
+    if grep -qF "$SENTINEL" "$DAILYLOG_PATH" 2>/dev/null; then
+      echo "DailyLog already generated for $TODAY (sentinel present) — skipping."
+      echo "=== Morning checkin finished: $(date) ==="
+      exit 0
+    fi
+    echo "DailyLog exists for $TODAY but has no generated-plan sentinel — treating as parked content to merge in."
+    PARKED_CONTENT=$(cat "$DAILYLOG_PATH" 2>/dev/null)
   fi
 
   CONTEXT=$(python3 "$SKILL_DIR/gather_context.py" 2>&1)
@@ -51,13 +61,27 @@ The gathered context is below (output of gather_context.py — skip re-running i
 $CONTEXT
 --- END CONTEXT ---
 
+The dailyLog file may already contain tasks Becca parked the night before
+(carried-forward or hand-added items). If so, that content is below — fold
+every one of those tasks into today's plan in the appropriate block; do not
+drop any of them.
+
+--- PARKED CONTENT (may be empty) ---
+$PARKED_CONTENT
+--- END PARKED CONTENT ---
+
 Non-interactive rules (no Becca to answer questions):
 - Step 1.5 weekly priorities: if 'This week' picks are already set for the current week in active-projects.md, use them. If not, pick the 1-3 most stale projects by days-since-last-focus and note in the plan that Becca should confirm.
 - Step 2 today-vs-tomorrow: it is 7:30am, so plan for today.
+- If the CONTEXT above contains a 'task file(s) unreadable' warning, note at the top of the plan that some tasks were iCloud-offloaded and may be missing.
 - Do not ask questions. Make reasonable calls and note assumptions inline.
-- Step 5: write the plan to: $DAILYLOG_PATH
+- Step 5: write the plan to: $DAILYLOG_PATH . The VERY FIRST line of the file must be exactly: $SENTINEL — this marks the plan as generated so re-runs don't clobber it. Put the '# Weekday, Month Day, Year' title on the next line.
 
 Output a single line when done: DONE or ERROR: <reason>."
+
+  # Notify if still running after 5 minutes
+  (sleep 300 && [ ! -f "$DAILYLOG_PATH" ] && osascript -e "display notification \"Still working — heavy load today\" with title \"Morning Check-in\"") &
+  TIMER_PID=$!
 
   RESULT=$("$CLAUDE_BIN" -p "$PROMPT" \
     --add-dir "$VAULT" \
@@ -65,6 +89,8 @@ Output a single line when done: DONE or ERROR: <reason>."
     --dangerously-skip-permissions \
     --no-session-persistence \
     --output-format text 2>&1)
+
+  kill $TIMER_PID 2>/dev/null
 
   echo "$RESULT"
 

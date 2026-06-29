@@ -17,6 +17,7 @@ CAPTURES_DIR = VAULT / "captures"
 ACTIVE_PROJECTS_FILE = VAULT / "active-projects.md"
 CALENDAR_DB = Path.home() / "Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb"
 MAC_EPOCH_OFFSET = 978307200  # seconds between unix epoch and 2001-01-01
+GPO_DEADLINES_FILE = Path("/Users/becca/Code/GPO/deadlines.md")
 
 
 # Weekly block schedule. Each day maps ordered (start, end, label) tuples.
@@ -93,11 +94,22 @@ def _parse_frontmatter(text: str) -> dict:
     return out
 
 
-def gather_tasks(today: datetime.date) -> tuple[list[dict], list[dict]]:
-    """Return (active_tasks, blocked_tasks). Blocked = start_date in future."""
-    active, blocked = [], []
+def gather_tasks(today: datetime.date) -> tuple[list[dict], list[dict], list[str]]:
+    """Return (active_tasks, blocked_tasks, unreadable_filenames).
+
+    Unreadable = iCloud-offloaded ("dataless") files that raise OSError on read
+    (errno 11, "Resource deadlock avoided") when the calling process can't
+    trigger materialization. Skip them with a note rather than crashing the
+    whole check-in — see project_daily_os memory.
+    """
+    active, blocked, unreadable = [], [], []
     for f in sorted(TASKS_DIR.glob("*.md")):
-        meta = _parse_frontmatter(f.read_text(errors="replace"))
+        try:
+            text = f.read_text(errors="replace")
+        except OSError:
+            unreadable.append(f.name)
+            continue
+        meta = _parse_frontmatter(text)
         if not meta.get("title"):
             continue
         if meta.get("done", "").lower() in ("true", "yes", "1"):
@@ -111,7 +123,7 @@ def gather_tasks(today: datetime.date) -> tuple[list[dict], list[dict]]:
             except ValueError:
                 pass
         active.append(meta)
-    return active, blocked
+    return active, blocked, unreadable
 
 
 def gather_calendar(start_date: datetime.date, end_date: datetime.date) -> list[tuple]:
@@ -220,7 +232,7 @@ def main() -> None:
     print()
 
     print("--- Pending tasks (active) ---")
-    active, blocked = gather_tasks(today)
+    active, blocked, unreadable = gather_tasks(today)
     if not active:
         print("(none)")
     for t in active:
@@ -236,6 +248,15 @@ def main() -> None:
             line += f"  [priority:{t['priority']}]"
         print(line)
     print()
+
+    if unreadable:
+        print(f"--- WARNING: {len(unreadable)} task file(s) unreadable (iCloud-offloaded / dataless) ---")
+        print("These were SKIPPED — the plan below may be missing tasks. To fix: open the")
+        print("vault tasks folder in Finder/Obsidian (or right-click → Keep Downloaded) to")
+        print("force materialization, then re-run.")
+        for name in unreadable:
+            print(f"- {name}")
+        print()
 
     if blocked:
         print("--- Blocked tasks (start_date in future) ---")
@@ -289,6 +310,35 @@ def main() -> None:
                 print(f"  [All day] {summary}")
             else:
                 print(f"  {sdt.strftime('%-I:%M %p')}-{edt.strftime('%-I:%M %p')}: {summary}")
+        print()
+
+    # GPO deadlines within 14 days
+    gpo_upcoming = []
+    if GPO_DEADLINES_FILE.exists():
+        cutoff = today + datetime.timedelta(days=14)
+        in_table = False
+        for line in GPO_DEADLINES_FILE.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("| Date") or line.startswith("|---"):
+                in_table = True
+                continue
+            if in_table and line.startswith("|") and not line.startswith("|---"):
+                parts = [c.strip() for c in line.strip("|").split("|")]
+                if len(parts) >= 5 and parts[0] not in ("Date", "---"):
+                    try:
+                        d = datetime.date.fromisoformat(parts[0])
+                        if today <= d <= cutoff:
+                            gpo_upcoming.append((d, parts[1], parts[3], parts[4]))
+                    except ValueError:
+                        pass
+            elif in_table and not line.startswith("|"):
+                in_table = False
+    if gpo_upcoming:
+        gpo_upcoming.sort()
+        print("--- GPO deadlines within 14 days ---")
+        for d, title, priority, notes in gpo_upcoming:
+            label = "[HARD]" if priority == "hard" else "[soft]"
+            print(f"  • {d} {label} {title} — {notes}")
         print()
 
     print("--- Today's captures so far ---")
